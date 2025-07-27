@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Auto Chat Demo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #ffffff;
+      display: flex;
+      justify-content: center;
+      padding: 40px;
+    }
+    .phone-frame {
+      width: 350px;
+      height: 700px;
+      background: white;
+      border: 10px solid #999;
+      border-radius: 40px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .phone-header {
+      padding: 10px;
+      text-align: center;
+      background: #f0f0f0;
+    }
+    .logo {
+      max-height: 40px;
+    }
+    .chat-scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      scroll-behavior: smooth;
+    }
+    .screen {
+      display: none;
+      flex-direction: column;
+      width: 100%;
+    }
+    .visible {
+      display: flex !important;
+    }
+    .bubble {
+      max-width: 80%;
+      padding: 12px;
+      border-radius: 15px;
+      font-size: 16px;
+      line-height: 1.4;
+      margin-bottom: 10px;
+      opacity: 0;
+      white-space: pre-wrap;
+    }
+    .user-bubble {
+      background-color: #d0f0ff;
+      align-self: flex-end;
+    }
+    .ai-bubble {
+      background-color: #f1f1f1;
+      align-self: flex-start;
+    }
+    .graph-placeholder img {
+      width: 100%;
+      border-radius: 10px;
+      margin: 10px 0;
+    }
+    .graph-placeholder, .cta-buttons {
+      opacity: 0;
+      transition: opacity 0.5s ease-in;
+    }
+    .cta-buttons {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+    }
+    .cta-buttons button {
+      padding: 10px;
+      font-size: 14px;
+      margin-top: 10px;
+      background-color: #0077ff;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .cta-pulse {
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% { background-color: #0077ff; transform: scale(1); }
+      50% { background-color: #005ecb; transform: scale(1.05); }
+      100% { background-color: #0077ff; transform: scale(1); }
+    }
+    .question-btn {
+      padding: 12px;
+      margin: 10px 0;
+      background: #0077ff;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .options label {
+      display: block;
+      margin: 5px 0;
+    }
+    .options input {
+      margin-right: 6px;
+    }
+    textarea {
+      width: 100%;
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 8px;
+      height: 80px;
+    }
+    .typing-indicator {
+      width: 50px;
+      align-self: flex-start;
+      margin-bottom: 10px;
+    }
+    .typing-indicator span {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background-color: #ccc;
+      border-radius: 50%;
+      margin-right: 4px;
+      animation: blink 1s infinite ease-in-out;
+    }
+    .typing-indicator span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+    .typing-indicator span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+    @keyframes blink {
+      0%, 80%, 100% { opacity: 0; }
+      40% { opacity: 1; }
+    }
+
+    .cursor-fake {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      background: url('https://cdn-icons-png.flaticon.com/512/60/60761.png') no-repeat center center;
+      background-size: contain;
+      z-index: 9999;
+      pointer-events: none;
+      transition: top 0.5s, left 0.5s;
+    }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+    <div class="phone-header">
+      <img src="https://static.wixstatic.com/media/f2c9a4_d33736cd94934c0eb54485961de64770~mv2.png" class="logo" alt="Logo" />
+    </div>
+    <div class="chat-scroll-area">
+      <div id="home" class="screen visible">
+        <h2 style="text-align:center;">Take a test drive</h2>
+        <button class="question-btn" id="btn-q1" onclick="startQ('q1')">Strategy Execution Risk</button>
+        <button class="question-btn" id="btn-q2" onclick="startQ('q2')">Missed Revenue Risk</button>
+        <button class="question-btn" id="btn-q3" onclick="startQ('q3')">Sales Operations Misalignment</button>
+        <button class="question-btn" id="btn-q4" onclick="startQ('q4')">Increased Turnover Risk</button>
+      </div>
+
+      <!-- Q1–Q4 Screens -->
+      <div id="q1" class="screen"></div>
+      <div id="q2" class="screen"></div>
+      <div id="q3" class="screen"></div>
+      <div id="q4" class="screen"></div>
+
+      <!-- Stakeholder -->
+      <div id="stakeholder-screen" class="screen">
+        <label>Include stakeholders:</label>
+        <div class="options">
+          <label><input type="radio" name="stake"> COO</label>
+          <label><input type="radio" name="stake"> CFO</label>
+          <label><input type="radio" name="stake"> CRO</label>
+          <label><input type="radio" name="stake"> CPO</label>
+          <label><input type="radio" name="stake"> CTO</label>
+          <label><input type="radio" name="stake"> Other</label>
+        </div>
+        <textarea placeholder="Add message or details..."></textarea>
+        <div class="cta-buttons" style="opacity: 1;">
+          <button class="cta-pulse" onclick="resetChat()">Back to Chat</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="cursor-fake" id="cursor"></div>
+  </div>
+<script>
+const cursor = document.getElementById("cursor");
+function moveCursorTo(el, callback) {
+  const rect = el.getBoundingClientRect();
+  const frame = document.querySelector(".phone-frame").getBoundingClientRect();
+  const top = rect.top - frame.top + rect.height / 2 - 10;
+  const left = rect.left - frame.left + rect.width / 2 - 10;
+  cursor.style.top = top + "px";
+  cursor.style.left = left + "px";
+  setTimeout(() => {
+    el.classList.add("hover");
+    setTimeout(() => {
+      el.classList.remove("hover");
+      el.click();
+      if (callback) callback();
+    }, 500);
+  }, 600);
+}
+
+const questions = {
+  q1: {
+    u1: "Where are my biggest execution risks over the next 3 months?\n\nAnd how do I ensure my leadership team is aligned to deliver our strategic priorities?",
+    a1: "Three core areas are driving execution risk:\n\n1. Misalignment across your c-suite\n2. High IQR scores\n3. Execution drag from inconsistent accountability.\n\nWould you like a full diagnostic or dive deeper?",
+    u2: "Where exactly is the misalignment within my leadership team?\n\nAnd how is it affecting execution?",
+    a2: "1. Conflicting strategy\n2. KPI misalignment\n3. Accountability confusion.\n\nWould you like to explore by department or involve your COO?",
+    g1: "https://static.wixstatic.com/media/f2c9a4_0c8ec61c0a2a421b849429c6edacbb74~mv2.png",
+    g2: "https://static.wixstatic.com/media/f2c9a4_db14f081041f4461ac13725254fb04fd~mv2.png"
+  },
+  q2: {
+    u1: "What execution risks threaten Q2 revenue targets?",
+    a1: "Misalignment between c-suite and teams may delay execution.\nDive deeper for key gaps or involve your revenue team.",
+    u2: "What are the key blockers to execution velocity?",
+    a2: "1. Cross-functional delays\n2. Process drag\n3. Poor handoffs.",
+    g1: "https://static.wixstatic.com/media/f2c9a4_0c8ec61c0a2a421b849429c6edacbb74~mv2.png",
+    g2: "https://static.wixstatic.com/media/f2c9a4_db14f081041f4461ac13725254fb04fd~mv2.png"
+  },
+  q3: {
+    u1: "Why are sales and ops out of sync?",
+    a1: "Your CRO and COO are running on different OKRs. This creates misfires.\nRecommend including them for alignment.",
+    u2: "Placeholder",
+    a2: "Placeholder",
+    g1: "https://static.wixstatic.com/media/f2c9a4_0c8ec61c0a2a421b849429c6edacbb74~mv2.png",
+    g2: "https://static.wixstatic.com/media/f2c9a4_db14f081041f4461ac13725254fb04fd~mv2.png"
+  },
+  q4: {
+    u1: "Where is voluntary turnover accelerating?",
+    a1: "Signals show team-level misalignment and unclear career paths.\nWould you like to explore deeper or include your CPO?",
+    u2: "Which teams are triggering the early turnover signals?",
+    a2: "1. Sales ops\n2. Support leads\n3. Engineering PMs.",
+    g1: "https://static.wixstatic.com/media/f2c9a4_0c8ec61c0a2a421b849429c6edacbb74~mv2.png",
+    g2: "https://static.wixstatic.com/media/f2c9a4_db14f081041f4461ac13725254fb04fd~mv2.png"
+  }
+};
+
+function showOnly(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("visible"));
+  document.getElementById(id).classList.add("visible");
+  scrollToBottom();
+}
+
+function resetChat() {
+  showOnly("home");
+  setTimeout(() => startSequence(), 1500);
+}
+
+function typeBubble(parent, cls, text, callback) {
+  const bubble = document.createElement("div");
+  bubble.className = `bubble ${cls}`;
+  parent.appendChild(bubble);
+  let i = 0, output = "";
+  const interval = setInterval(() => {
+    const char = text.charAt(i);
+    output += char === "\n" ? "<br>" : char;
+    bubble.innerHTML = output;
+    scrollToBottom();
+    i++;
+    if (i >= text.length) {
+      clearInterval(interval);
+      bubble.style.opacity = 1;
+      callback && callback();
+    }
+  }, 20);
+}
+
+function showTyping(parent, callback) {
+  const typing = document.createElement("div");
+  typing.className = "typing-indicator";
+  typing.innerHTML = "<span></span><span></span><span></span>";
+  parent.appendChild(typing);
+  scrollToBottom();
+  setTimeout(() => {
+    typing.remove();
+    callback && callback();
+  }, 1000);
+}
+
+function insertGraph(parent, url, callback) {
+  const div = document.createElement("div");
+  div.className = "graph-placeholder";
+  div.style.opacity = 1;
+  div.innerHTML = `<img src="${url}" />`;
+  parent.appendChild(div);
+  scrollToBottom();
+  callback && callback();
+}
+
+function insertCTAs(parent, qid, followup = false, pulse = "dive") {
+  const div = document.createElement("div");
+  div.className = "cta-buttons";
+  const pulseClass = pulse === "include" ? "cta-pulse" : "";
+  div.innerHTML = followup
+    ? `<button class="${pulse === 'include' ? 'cta-pulse' : ''}" onclick="showOnly('stakeholder-screen')">Include Related People</button>
+       <button onclick="return false;">Export a Report</button>`
+    : `<button class="${pulse === 'dive' ? 'cta-pulse' : ''}" onclick="continueQ('${qid}')">Dive Deeper</button>
+       <button class="${pulse === 'include' ? 'cta-pulse' : ''}" onclick="showOnly('stakeholder-screen')">Include Related People</button>
+       <button onclick="return false;">Export a Report</button>`;
+  parent.appendChild(div);
+  scrollToBottom();
+}
+
+function scrollToBottom() {
+  const scrollArea = document.querySelector(".chat-scroll-area");
+  scrollArea.scrollTop = scrollArea.scrollHeight;
+}
+
+// Step through flow
+let qOrder = ["q1", "q3", "q2", "q4"];
+let currentQ = 0;
+
+function startSequence() {
+  const qid = qOrder[currentQ % qOrder.length];
+  currentQ++;
+  const btn = document.getElementById("btn-" + qid);
+  moveCursorTo(btn, () => startQAuto(qid));
+}
+
+function startQAuto(qid) {
+  const q = questions[qid];
+  const container = document.getElementById(qid);
+  container.innerHTML = "";
+  showOnly(qid);
+  typeBubble(container, "user-bubble", q.u1, () => {
+    showTyping(container, () => {
+      typeBubble(container, "ai-bubble", q.a1, () => {
+        insertGraph(container, q.g1, () => {
+          let pulseType = (qid === "q3") ? "include" : "dive";
+          insertCTAs(container, qid, false, pulseType);
+          setTimeout(() => {
+            if (qid === "q3") {
+              goToStakeholder();
+            } else {
+              const diveBtn = container.querySelector(".cta-buttons button");
+              moveCursorTo(diveBtn, () => continueQAuto(qid));
+            }
+          }, 3000);
+        });
+      });
+    });
+  });
+}
+
+function continueQAuto(qid) {
+  const q = questions[qid];
+  const container = document.getElementById(qid);
+  const oldCTA = container.querySelector(".cta-buttons");
+  if (oldCTA) oldCTA.remove();
+  typeBubble(container, "user-bubble", q.u2, () => {
+    showTyping(container, () => {
+      typeBubble(container, "ai-bubble", q.a2, () => {
+        insertGraph(container, q.g2, () => {
+          insertCTAs(container, qid, true, "include");
+          setTimeout(() => {
+            const includeBtn = container.querySelector(".cta-buttons button");
+            moveCursorTo(includeBtn, () => goToStakeholder());
+          }, 3000);
+        });
+      });
+    });
+  });
+}
+
+function goToStakeholder() {
+  showOnly("stakeholder-screen");
+  const radios = document.querySelectorAll("#stakeholder-screen input[type='radio']");
+  const backBtn = document.querySelector("#stakeholder-screen button");
+  setTimeout(() => {
+    radios[Math.floor(Math.random() * radios.length)].checked = true;
+    setTimeout(() => moveCursorTo(backBtn, () => {}), 2000);
+  }, 1000);
+}
+
+window.onload = () => {
+  setTimeout(() => startSequence(), 1500);
+};
+</script>
+</body>
+</html>
